@@ -1,5 +1,14 @@
 package mapreduce
 
+
+import (
+	"os"
+	"encoding/json"
+	"log"
+	"sort"
+)
+
+
 func doReduce(
 	jobName string, // the name of the whole MapReduce job
 	reduceTask int, // which reduce task this is
@@ -44,4 +53,36 @@ func doReduce(
 	//
 	// Your code here (Part I).
 	//
+
+	//1.创建map
+	keyValues := make(map[string][]string,0)
+
+	for i := 0; i < nMap; i++ {
+		//2. 打开每个map 任务下对应该 reduce 的文件
+		fileName := reduceName(jobName,i,reduceTask)
+		file,err := os.Open(fileName)
+		if err != nil {
+			log.Fatal("doReduce: open intermediate file ", fileName, " error: ", err)
+		}
+		defer file.Close()
+
+		//3. 读取并反序列化成json
+		dec := json.NewEncoder(file)
+		for {
+			var kv KeyValue
+			err := dec.Decode(&kv)
+			if err != nil {
+				break
+			}
+
+			_, ok = keyValues[kv.Key]
+			if !ok {
+				keyValues[ky.Key] = make([]string,0)
+			}
+			keyValues[kv.Key] = append(keyValues[kv.Key], kv.Value)
+		}
+	}
+
+	//3.拿到所有
+
 }

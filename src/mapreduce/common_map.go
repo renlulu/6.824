@@ -2,6 +2,10 @@ package mapreduce
 
 import (
 	"hash/fnv"
+	"io/ioutil"
+	"os"
+	"encoding/json"
+	"fmt"
 )
 
 func doMap(
@@ -53,6 +57,39 @@ func doMap(
 	//
 	// Your code here (Part I).
 	//
+
+	//1.读取文件
+	b,err := ioutil.ReadFile(inFile)
+	if err != nil {
+		fmt.Println("read file error")
+		return
+	}
+	contentString := string(b)
+
+	//2.调用map 函数
+	kvSlice := mapF(inFile,contentString)
+
+	//3.创建文件，并以json 的格式写入
+	for index := 0; index < nReduce; index++ {
+		fileName := reduceName(jobName,mapTask,index)
+		imFile,err := os.Create(fileName)
+		if err != nil {
+			fmt.Println("create reduce file error")
+			return
+		}
+		defer imFile.Close()
+
+		enc := json.NewEncoder(imFile)
+		for _,kv := range kvSlice {
+			if ihash(kv.Key) % nReduce == index {
+				err := enc.Encode(&kv)
+				if err != nil {
+					fmt.Println("encode error")
+				}
+			}
+		}
+
+	}
 }
 
 func ihash(s string) int {
